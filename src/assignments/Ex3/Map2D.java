@@ -33,7 +33,7 @@ public interface Map2D {
 	 * @throws RuntimeException if arr == null or if the array is empty or a ragged 2D array.
 	 * @param arr a 2D int array.
 	 */
-	public void init(int[][] arr);
+	public void  init(int[][] arr);
 
 	/**
 	 * Computes a deep copy of the underline 2D matrix.

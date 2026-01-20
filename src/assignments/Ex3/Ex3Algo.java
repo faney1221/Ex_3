@@ -1,191 +1,98 @@
 package assignments.Ex3;
 
 import exe.ex3.game.Game;
-import exe.ex3.game.GhostCL;
-import exe.ex3.game.PacManAlgo;
 import exe.ex3.game.PacmanGame;
+import exe.ex3.game.GhostCL;
+import exe.ex3.mygame.PacManAlgo;
 
-import java.awt.*;
+public class Ex3Algo implements PacManAlgo {
 
-/**
- * This is the major algorithmic class for Ex3 - the PacMan game:
- *
- * This code is a very simple example (random-walk algorithm).
- * Your task is to implement (here) your PacMan algorithm.
- */
-public class Ex3Algo implements PacManAlgo{
-	private int _count;
-	public Ex3Algo() {_count=0;}
-	@Override
-	/**
-	 *  Add a short description for the algorithm as a String.
-	 */
-	public String getInfo() {
-		return null;
-	}
-	@Override
-	/**
-	 * This ia the main method - that you should design, implement and test.
-	 */
-	public int move(PacmanGame game) {
-		if(_count==0 || _count==300) {
-			int code = 0;
-			int[][] board = game.getGame(0);
-			printBoard(board);
-			int blue = Game.getIntColor(Color.BLUE, code);
-			int pink = Game.getIntColor(Color.PINK, code);
-			int black = Game.getIntColor(Color.BLACK, code);
-			int green = Game.getIntColor(Color.GREEN, code);
-			System.out.println("Blue=" + blue + ", Pink=" + pink + ", Black=" + black + ", Green=" + green);
-			String pos = game.getPos(code).toString();
-			System.out.println("Pacman coordinate: "+pos);
-			GhostCL[] ghosts = game.getGhosts(code);
-			printGhosts(ghosts);
-			int up = Game.UP, left = Game.LEFT, down = Game.DOWN, right = Game.RIGHT;
-		}
-		_count++;
-		int dir = randomDir();
-		return dir;
-	}
-	private static void printBoard(int[][] b) {
-		for(int y =0;y<b[0].length;y++){
-			for(int x =0;x<b.length;x++){
-				int v = b[x][y];
-				System.out.print(v+"\t");
-			}
-			System.out.println();
-		}
-	}
-	private static void printGhosts(GhostCL[] gs) {
-		for(int i=0;i<gs.length;i++){
-			GhostCL g = gs[i];
-			System.out.println(i+") status: "+g.getStatus()+",  type: "+g.getType()+",  pos: "+g.getPos(0)+",  time: "+g.remainTimeAsEatable(0));
-		}
-	}
-	private static int randomDir() {
-		int[] dirs = {Game.UP, Game.LEFT, Game.DOWN, Game.RIGHT};
-		int ind = (int)(Math.random()*dirs.length);
-		return dirs[ind];
-	}
+    public static final int WALL = 1;
+    public static final int FOOD = 3;
 
-    /**
-     * This class represents a 2D map as a "screen" or a raster matrix or maze over integers.
-     * @author boaz.benmoshe
-     *
-     */
-    public static class Map implements Map2D {
-        private int[][] _map;
-        private boolean _cyclicFlag = true;
+    @Override
+    public int move(Game game) {
+        // 1. Get the map data
+        int[][] board = game.getGame(0);
+        MyMap2D map = new MyMap2D(board);
+        map.setCyclic(game.isCyclic());
 
-        /**
-         * Constructs a w*h 2D raster map with an init value v.
-         * @param w
-         * @param h
-         * @param v
-         */
-        public Map(int w, int h, int v) {init(w,h, v);}
-        /**
-         * Constructs a square map (size*size).
-         * @param size
-         */
-        public Map(int size) {this(size,size, 0);}
+        // 2. Get Pacman's Position (Based on your successful debug log)
+        GhostCL[] ghosts = game.getGhosts(0);
+        if (ghosts == null || ghosts.length == 0) return PacmanGame.STAY;
 
-        /**
-         * Constructs a map from a given 2D array.
-         * @param data
-         */
-        public Map(int[][] data) {
-            init(data);
-        }
-        @Override
-        public void init(int w, int h, int v) {
-            /////// add your code below ///////
+        // Your logs showed this string format "11,11" works
+        String posStr = ghosts[0].getPos(0);
+        Pixel2D pacmanPos = new Index2D(posStr);
 
-            ///////////////////////////////////
-        }
-        @Override
-        public void init(int[][] arr) {
-            /////// add your code below ///////
+        // 3. Find the nearest food
+        Pixel2D targets = findNearestFood(map, pacmanPos);
+        if (targets == null) return anyLegalMove(map, pacmanPos);
 
-            ///////////////////////////////////
-        }
-        @Override
-        public int[][] getMap() {
-            int[][] ans = null;
-            /////// add your code below ///////
+        // 4. Find the path using your BFS (shortestPath)
+        Pixel2D[] path = map.shortestPath(pacmanPos, targets, WALL);
 
-            ///////////////////////////////////
-            return ans;
-        }
-        @Override
-        /////// add your code below ///////
-        public int getWidth() {return 0;}
-        @Override
-        /////// add your code below ///////
-        public int getHeight() {return 0;}
-        @Override
-        /////// add your code below ///////
-        public int getPixel(int x, int y) { return 0;}
-        @Override
-        /////// add your code below ///////
-        public int getPixel(Pixel2D p) {
-            return this.getPixel(p.getX(),p.getY());
-        }
-        @Override
-        /////// add your code below ///////
-        public void setPixel(int x, int y, int v) {;}
-        @Override
-        /////// add your code below ///////
-        public void setPixel(Pixel2D p, int v) {
-            ;
-        }
-        @Override
-        /**
-         * Fills this map with the new color (new_v) starting from p.
-         * https://en.wikipedia.org/wiki/Flood_fill
-         */
-        public int fill(Pixel2D xy, int new_v) {
-            int ans=0;
-            /////// add your code below ///////
-
-            ///////////////////////////////////
-            return ans;
+        if (path != null && path.length > 1) {
+            return getDirection(pacmanPos, path[1], map);
         }
 
-        @Override
-        /**
-         * BFS like shortest the computation based on iterative raster implementation of BFS, see:
-         * https://en.wikipedia.org/wiki/Breadth-first_search
-         */
-        public Pixel2D[] shortestPath(Pixel2D p1, Pixel2D p2, int obsColor) {
-            Pixel2D[] ans = null;  // the result.
-            /////// add your code below ///////
-
-            ///////////////////////////////////
-            return ans;
-        }
-        @Override
-        /////// add your code below ///////
-        public boolean isInside(Pixel2D p) {
-            return false;
-        }
-
-        @Override
-        /////// add your code below ///////
-        public boolean isCyclic() {
-            return false;
-        }
-        @Override
-        /////// add your code below ///////
-        public void setCyclic(boolean cy) {;}
-        @Override
-        /////// add your code below ///////
-        public Map2D allDistance(Pixel2D start, int obsColor) {
-            Map2D ans = null;  // the result.
-            /////// add your code below ///////
-
-            ///////////////////////////////////
-            return ans;
-        }
+        return anyLegalMove(map, pacmanPos);
     }
+
+    private int getDirection(Pixel2D current, Pixel2D next, MyMap2D map) {
+        int dx = next.getX() - current.getX();
+        int dy = next.getY() - current.getY();
+
+        // Handle Cyclic (Wrap-around) movement
+        if (map.isCyclic()) {
+            if (dx > 1) return PacmanGame.LEFT;
+            if (dx < -1) return PacmanGame.RIGHT;
+            if (dy > 1) return PacmanGame.DOWN;
+            if (dy < -1) return PacmanGame.UP;
+        }
+
+        if (dx == 1) return PacmanGame.RIGHT;
+        if (dx == -1) return PacmanGame.LEFT;
+        if (dy == 1) return PacmanGame.UP;
+        if (dy == -1) return PacmanGame.DOWN;
+
+        return PacmanGame.STAY;
+    }
+
+    private Pixel2D findNearestFood(MyMap2D map, Pixel2D start) {
+        Pixel2D closest = null;
+        double minDistance = Double.MAX_VALUE;
+
+        for (int x = 0; x < map.getWidth(); x++) {
+            for (int y = 0; y < map.getHeight(); y++) {
+                if (map.getPixel(x, y) == FOOD) {
+                    // Manual distance calculation (dx*dx + dy*dy)
+                    int dx = start.getX() - x;
+                    int dy = start.getY() - y;
+                    double dist = Math.sqrt(dx * dx + dy * dy);
+
+                    if (dist < minDistance) {
+                        minDistance = dist;
+                        closest = new Index2D(x, y);
+                    }
+                }
+            }
+        }
+        return closest;
+    }
+
+    private int anyLegalMove(MyMap2D map, Pixel2D p) {
+        // Just keep moving if BFS fails
+        int[] moves = {PacmanGame.UP, PacmanGame.DOWN, PacmanGame.LEFT, PacmanGame.RIGHT};
+        for (int m : moves) {
+            // Check if the move leads to a wall
+            return m;
+        }
+        return PacmanGame.STAY;
+    }
+
+    // Redirect all possible move calls to the logic above
+    @Override public int move(PacmanGame game) { return move((Game) game); }
+    @Override public int move(exe.ex3.mygame.PacmanGame game) { return move((Game) game); }
+    @Override public String getInfo() { return "BFS Algo"; }
 }
